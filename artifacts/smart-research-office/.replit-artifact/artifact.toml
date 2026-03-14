@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "المكتب الذكي للبحث العلمي"
+version = "1.0.0"
+id = "artifacts/smart-research-office"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 18650
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/smart-research-office run dev"
+
+[services.env]
+PORT = "18650"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/smart-research-office", "run", "build"]
+publicDir = "artifacts/smart-research-office/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
