@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Search, AlertCircle, BookOpen, FileText } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
 import { PageTitle } from '../components/PageTitle';
 import { SectionCard } from '../components/SectionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { EmptyState } from '../components/EmptyState';
 import { ResultCard } from '../components/ResultCard';
-import { mockSearchResults } from '../data/mockData';
+import { useReferences } from '../context/ReferencesContext';
+import { mockSearchResults, SearchResult } from '../data/mockData';
 
 export function AnalysisPage() {
+  const { references } = useReferences();
+
   const [question, setQuestion] = useState('');
   const [scope, setScope] = useState('all');
   const [llmEnabled, setLlmEnabled] = useState(false);
@@ -17,18 +20,35 @@ export function AnalysisPage() {
   const [paragraphComments, setParagraphComments] = useState(true);
   const [generalComments, setGeneralComments] = useState(true);
   const [finalConclusions, setFinalConclusions] = useState(true);
-  const [results, setResults] = useState<typeof mockSearchResults | null>(null);
+  const [results, setResults] = useState<SearchResult[] | null>(null);
   const [analyzedQuestion, setAnalyzedQuestion] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const hasReferences = references.length > 0;
+
   const handleAnalyze = () => {
-    if (!question.trim()) return;
+    if (!question.trim() || !hasReferences) return;
     setLoading(true);
     setAnalyzedQuestion(question);
     setTimeout(() => {
-      setResults(mockSearchResults);
+      const simulatedResults: SearchResult[] = references.flatMap((ref) =>
+        ref.files
+          .filter((f) => f.extractedText)
+          .map((f, i) => ({
+            id: `${ref.id}-${f.id}`,
+            topic: `نتيجة من: ${ref.name}`,
+            originalText: f.extractedText,
+            referenceName: ref.name,
+            pageNumber: f.pageNumber,
+            relevanceScore: Math.max(60, 95 - i * 8),
+            analysis: `هذه الفقرة مستخرجة من المرجع «${ref.name}» وقد تم تحديدها كذات صلة بالسؤال المطروح بواسطة موظف البحث.`,
+          }))
+      );
+
+      const finalResults = simulatedResults.length > 0 ? simulatedResults : mockSearchResults.slice(0, 2);
+      setResults(finalResults.sort((a, b) => b.relevanceScore - a.relevanceScore));
       setLoading(false);
-    }, 800);
+    }, 900);
   };
 
   return (
@@ -93,13 +113,19 @@ export function AnalysisPage() {
 
           <PrimaryButton
             onClick={handleAnalyze}
-            disabled={!question.trim() || loading}
+            disabled={!question.trim() || !hasReferences || loading}
             fullWidth
             size="lg"
             icon={<Search className="w-5 h-5" />}
           >
             {loading ? 'جارٍ التحليل...' : 'ابدأ تحليل السؤال'}
           </PrimaryButton>
+
+          {!hasReferences && (
+            <p className="text-xs text-[#8C84A8] text-center bg-violet-50 rounded-xl px-3 py-2 border border-violet-100">
+              ارفع مراجع أولاً لتفعيل التحليل
+            </p>
+          )}
         </div>
 
         <div className="lg:col-span-3 space-y-4">
@@ -110,10 +136,16 @@ export function AnalysisPage() {
             </p>
           </div>
 
-          {results === null && !loading ? (
+          {!hasReferences ? (
+            <EmptyState
+              title="لا توجد مراجع مرفوعة"
+              description="قم برفع ملفاتك أولاً من صفحة ربط الملفات بمرجع، ثم ابدأ تحليل أسئلتك البحثية"
+              icon="inbox"
+            />
+          ) : results === null && !loading ? (
             <EmptyState
               title="مساحة النتائج"
-              description="أدخل سؤالك البحثي واضغط على زر التحليل لعرض الفقرات الأكثر صلة من المراجع الأصلية"
+              description="أدخل سؤالك البحثي واضغط على زر التحليل لعرض الفقرات الأكثر صلة من مراجعك المرفوعة"
               icon="search"
             />
           ) : loading ? (
@@ -122,14 +154,14 @@ export function AnalysisPage() {
                 <Search className="w-6 h-6 text-white" />
               </div>
               <p className="text-sm font-semibold text-[#231942]">يجري البحث داخل النصوص الأصلية...</p>
-              <p className="text-xs text-[#8C84A8] mt-1">موظف البحث يبحث عن الفقرات الأكثر صلة</p>
+              <p className="text-xs text-[#8C84A8] mt-1">موظف البحث يبحث في {references.length} مرجع</p>
             </div>
           ) : (
             <>
               <div className="bg-white rounded-2xl border border-violet-100 card-shadow p-4">
                 <p className="text-xs font-bold text-violet-500 uppercase tracking-wide mb-2">السؤال المُحلَّل</p>
                 <p className="text-sm font-semibold text-[#231942] leading-6">{analyzedQuestion}</p>
-                <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
                   <span className="text-xs text-[#8C84A8] bg-violet-50 px-2.5 py-1 rounded-lg border border-violet-100">
                     النطاق: {scope === 'all' ? 'جميع المراجع' : scope === 'specific' ? 'مرجع محدد' : 'صفحات محددة'}
                   </span>

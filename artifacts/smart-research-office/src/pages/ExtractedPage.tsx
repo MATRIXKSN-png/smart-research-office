@@ -7,47 +7,36 @@ import { EmptyState } from '../components/EmptyState';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { MetadataRow } from '../components/MetadataRow';
-import { mockReferences, Reference, ReferenceFile } from '../data/mockData';
+import { useReferences, ReferenceFile } from '../context/ReferencesContext';
 
 export function ExtractedPage() {
-  const [references, setReferences] = useState<Reference[]>(mockReferences);
-  const [selectedRefId, setSelectedRefId] = useState<string>(mockReferences[0]?.id ?? '');
-  const [selectedFileId, setSelectedFileId] = useState<string>(mockReferences[0]?.files[0]?.id ?? '');
+  const {
+    references,
+    selectedRefId,
+    selectedFileId,
+    setSelectedRefId,
+    setSelectedFileId,
+    deleteReference,
+  } = useReferences();
+
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const selectedRef = references.find((r) => r.id === selectedRefId);
   const selectedFile: ReferenceFile | undefined = selectedRef?.files.find((f) => f.id === selectedFileId);
 
-  const handleSelectRef = (refId: string) => {
-    setSelectedRefId(refId);
-    const ref = references.find((r) => r.id === refId);
-    if (ref && ref.files.length > 0) {
-      setSelectedFileId(ref.files[0].id);
-    } else {
-      setSelectedFileId('');
-    }
-  };
+  console.log('[ExtractedPage] references:', references.length, '| selectedRef:', selectedRefId, '| selectedFile:', selectedFileId);
 
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
-    const remaining = references.filter((r) => r.id !== deleteTarget);
-    setReferences(remaining);
-    if (deleteTarget === selectedRefId) {
-      if (remaining.length > 0) {
-        setSelectedRefId(remaining[0].id);
-        setSelectedFileId(remaining[0].files[0]?.id ?? '');
-      } else {
-        setSelectedRefId('');
-        setSelectedFileId('');
-      }
-    }
+    deleteReference(deleteTarget);
     setDeleteTarget(null);
   };
 
   const handleCopy = () => {
-    if (selectedFile?.extractedText) {
-      navigator.clipboard.writeText(selectedFile.extractedText).catch(() => {});
+    const text = selectedFile?.extractedText;
+    if (text) {
+      navigator.clipboard.writeText(text).catch(() => {});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -65,16 +54,18 @@ export function ExtractedPage() {
           </span>
         }
         action={
-          <PrimaryButton size="sm" icon={<FileDown className="w-4 h-4" />}>
-            حفظ جميع النصوص لهذا المرجع
-          </PrimaryButton>
+          references.length > 0 ? (
+            <PrimaryButton size="sm" icon={<FileDown className="w-4 h-4" />}>
+              حفظ جميع النصوص لهذا المرجع
+            </PrimaryButton>
+          ) : undefined
         }
       />
 
       {references.length === 0 ? (
         <EmptyState
-          title="لا توجد مراجع حاليًا"
-          description="يمكنك إضافة ملفات جديدة لبدء العمل من صفحة ربط الملفات"
+          title="لا توجد مراجع مرفوعة بعد"
+          description="قم برفع ملفات جديدة لبدء العمل من صفحة ربط الملفات بمرجع"
           icon="inbox"
         />
       ) : (
@@ -85,7 +76,7 @@ export function ExtractedPage() {
                 {references.map((ref) => (
                   <div key={ref.id} className="group">
                     <div
-                      onClick={() => handleSelectRef(ref.id)}
+                      onClick={() => setSelectedRefId(ref.id)}
                       className={`flex items-start gap-2 p-3 rounded-xl cursor-pointer transition-all duration-150 ${
                         selectedRefId === ref.id
                           ? 'bg-violet-50 border border-violet-200'
@@ -128,7 +119,9 @@ export function ExtractedPage() {
                                 : 'text-[#6B628A] hover:bg-violet-50'
                             }`}
                           >
-                            <span className="truncate block">ص {file.pageNumber} — {file.fileName.slice(0, 18)}...</span>
+                            <span className="truncate block">
+                              ص {file.pageNumber} — {file.fileName.length > 20 ? file.fileName.slice(0, 20) + '...' : file.fileName}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -140,7 +133,13 @@ export function ExtractedPage() {
           </div>
 
           <div className="lg:col-span-3 space-y-4">
-            {selectedFile ? (
+            {!selectedRef ? (
+              <EmptyState
+                title="اختر مرجعًا من القائمة"
+                description="اضغط على أي مرجع في القائمة على اليمين لعرض ملفاته"
+                icon="file"
+              />
+            ) : selectedFile && selectedFile.extractedText ? (
               <>
                 <div className="flex items-center gap-2 justify-end flex-wrap">
                   <button
@@ -159,7 +158,7 @@ export function ExtractedPage() {
                 <SectionCard title="معلومات الملف">
                   <div className="grid grid-cols-2 gap-x-6">
                     <MetadataRow label="اسم الملف" value={selectedFile.fileName} />
-                    <MetadataRow label="المرجع" value={selectedRef?.name ?? ''} />
+                    <MetadataRow label="المرجع" value={selectedRef.name} />
                     <MetadataRow label="رقم الصفحة" value={`ص ${selectedFile.pageNumber}`} />
                     <MetadataRow label="طريقة الاستخراج" value={selectedFile.extractionMethod} />
                     <MetadataRow label="الوكيل المنفذ" value={selectedFile.agentName} />
@@ -176,7 +175,7 @@ export function ExtractedPage() {
                     </span>
                   </div>
                   <div
-                    className="bg-[#FCFAFF] rounded-xl border border-violet-100 p-5 text-sm text-[#231942] leading-8 font-medium select-text"
+                    className="bg-[#FCFAFF] rounded-xl border border-violet-100 p-5 text-sm text-[#231942] leading-8 font-medium"
                     style={{ userSelect: 'text', cursor: 'default', direction: 'rtl' }}
                   >
                     {selectedFile.extractedText}
@@ -189,18 +188,38 @@ export function ExtractedPage() {
                     <div>
                       <p className="text-xs font-semibold text-amber-700 mb-1">لا يتم تعديل النص الأصلي</p>
                       <p className="text-xs text-[#8C84A8] leading-5">
-                        لا يوجد تحليل ذكي لهذه الصفحة حتى الآن. انتقل إلى صفحة تحليل السؤال لبدء التحليل.
+                        انتقل إلى صفحة تحليل السؤال لبدء التحليل الذكي على هذا المرجع.
                       </p>
                     </div>
                   </div>
                 </SectionCard>
               </>
             ) : (
-              <EmptyState
-                title="لا يوجد نص مستخرج لهذه الصفحة"
-                description="اختر مرجعًا وصفحة من القائمة على اليمين"
-                icon="file"
-              />
+              <div className="bg-white rounded-2xl border border-violet-100 card-shadow">
+                <div className="p-5 border-b border-violet-50">
+                  <p className="text-sm font-semibold text-[#231942]">{selectedRef.name}</p>
+                  <p className="text-xs text-[#6B628A] mt-0.5">{selectedRef.author}</p>
+                </div>
+                <div className="p-5 space-y-3">
+                  {selectedRef.files.map((file) => (
+                    <div key={file.id} className="flex items-center gap-3 p-3 bg-violet-50/40 rounded-xl border border-violet-100">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#231942] truncate">{file.fileName}</p>
+                        <p className="text-[10px] text-[#8C84A8] mt-0.5">
+                          {file.extractionMethod} • {file.agentName}
+                        </p>
+                      </div>
+                      <StatusBadge status={file.status} size="sm" />
+                    </div>
+                  ))}
+                  <div className="flex items-start gap-3 p-3 bg-amber-50/60 rounded-xl border border-amber-100 mt-3">
+                    <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 leading-5">
+                      لا يوجد نص مستخرج لهذا المرجع بعد. الوكلاء يعالجون الملفات في الخلفية.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
