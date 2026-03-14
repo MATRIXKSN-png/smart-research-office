@@ -26,7 +26,7 @@ export function AppShell({ currentPage, onNavigate, children, isMobileView, onTo
   const showSidebar = !isMobileView && !isSmallScreen;
 
   return (
-    <div className="min-h-screen bg-[#F6F3FF] flex flex-col" style={{ direction: 'rtl' }}>
+    <div className="min-h-screen bg-app flex flex-col" style={{ direction: 'rtl' }}>
       <TopHeader
         onMenuOpen={() => setDrawerOpen(true)}
         isMobileView={isMobileView}

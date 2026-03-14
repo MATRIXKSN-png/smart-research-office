@@ -4,6 +4,27 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Smart Research Office App (artifacts/smart-research-office)
+
+Arabic RTL React+Vite web app with purple/violet theme. Features:
+
+### Architecture
+- **ThemeContext** — dark/light mode toggle, persisted to localStorage
+- **ReferencesContext** — unified state for all uploaded references, auto-saved to localStorage
+- **services/extraction/processingPipeline.ts** — simulated extraction pipeline (queued→processing→extracted/failed)
+- **services/ai/aiService.ts** — AI integration layer (OpenAI/OpenRouter), with local fallback
+- **services/storage/localStorageService.ts** — persistence for references and AI settings
+
+### Pages
+1. **ربط الملفات** (UploadPage) — upload files, create references, triggers processing pipeline automatically
+2. **النصوص المستخرجة** (ExtractedPage) — shows extraction status per file/page with live state updates
+3. **تحليل السؤال** (AnalysisPage) — search over extracted texts, optional AI analysis layer
+4. **الإعدادات** (SettingsPage) — app settings + AI integration settings (provider, API key, test connection)
+
+### Dark Mode
+- CSS custom properties (`--app-bg`, `--surface`, `--text-main`, etc.) with `html.dark` overrides
+- Toggle button in TopHeader, persisted to localStorage
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

@@ -11,12 +11,12 @@ interface SectionCardProps {
 
 export function SectionCard({ title, description, children, className = '', headerAction, compact = false }: SectionCardProps) {
   return (
-    <div className={`bg-white rounded-2xl border border-violet-100 card-shadow ${className}`}>
+    <div className={`bg-surface rounded-2xl border border-border-light card-shadow dark-section-card ${className}`}>
       {(title || headerAction) && (
-        <div className={`flex items-center justify-between ${compact ? 'px-4 py-3' : 'px-5 py-4'} border-b border-violet-50`}>
+        <div className={`flex items-center justify-between ${compact ? 'px-4 py-3' : 'px-5 py-4'} border-b border-border-soft`}>
           <div>
-            {title && <h3 className="font-semibold text-[#231942] text-sm">{title}</h3>}
-            {description && <p className="text-xs text-[#8C84A8] mt-0.5">{description}</p>}
+            {title && <h3 className="font-semibold text-main text-sm">{title}</h3>}
+            {description && <p className="text-xs text-muted mt-0.5">{description}</p>}
           </div>
           {headerAction && <div>{headerAction}</div>}
         </div>

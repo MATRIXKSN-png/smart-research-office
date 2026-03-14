@@ -5,6 +5,7 @@ import { ExtractedPage } from './pages/ExtractedPage';
 import { AnalysisPage } from './pages/AnalysisPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ReferencesProvider } from './context/ReferencesContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 type Page = 'upload' | 'extracted' | 'analysis' | 'settings';
 
@@ -28,16 +29,18 @@ function App() {
   };
 
   return (
-    <ReferencesProvider>
-      <AppShell
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        isMobileView={isMobileView}
-        onToggleMobileView={() => setIsMobileView((p) => !p)}
-      >
-        {renderPage()}
-      </AppShell>
-    </ReferencesProvider>
+    <ThemeProvider>
+      <ReferencesProvider>
+        <AppShell
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          isMobileView={isMobileView}
+          onToggleMobileView={() => setIsMobileView((p) => !p)}
+        >
+          {renderPage()}
+        </AppShell>
+      </ReferencesProvider>
+    </ThemeProvider>
   );
 }
 
