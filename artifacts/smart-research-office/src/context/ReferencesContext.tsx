@@ -1,7 +1,9 @@
+// src/context/ReferencesContext.tsx
+
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { saveReferences, loadReferences } from '../services/storage/localStorageService';
 
-export type FileStatus = 'queued' | 'processing' | 'extracted' | 'failed' | 'في الانتظار';
+export type FileStatus = 'queued' | 'processing' | 'extracted' | 'failed';
 
 export interface ReferenceFile {
   id: string;
@@ -124,21 +126,15 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const autoSelectFirstExtracted = useCallback((referenceId: string) => {
-    setReferences((prev) => {
-      const ref = prev.find((r) => r.id === referenceId);
-      if (!ref) return prev;
+    const ref = references.find((r) => r.id === referenceId);
+    if (!ref) return;
 
-      const updatedRef = prev.find((r) => r.id === referenceId);
-      const firstExtracted = updatedRef?.files.find((f) => f.status === 'extracted');
-
-      if (firstExtracted) {
-        setSelectedRefIdState(referenceId);
-        setSelectedFileId(firstExtracted.id);
-      }
-
-      return prev;
-    });
-  }, []);
+    const firstExtracted = ref.files.find((f) => f.status === 'extracted');
+    if (firstExtracted) {
+      setSelectedRefIdState(referenceId);
+      setSelectedFileId(firstExtracted.id);
+    }
+  }, [references]);
 
   return (
     <ReferencesContext.Provider
