@@ -1,3 +1,5 @@
+// artifacts/smart-research-office/src/services/ai/aiService.ts
+
 import { AISettings } from '../storage/localStorageService';
 
 export interface AIAnalysisRequest {
@@ -17,6 +19,10 @@ export interface AIAnalysisResult {
   error?: string;
 }
 
+function getBackendBaseUrl(): string {
+  return (import.meta.env.VITE_AI_BACKEND_URL as string | undefined)?.trim() || 'http://localhost:8787';
+}
+
 const isOnline = (): boolean => {
   if (typeof navigator === 'undefined') return true;
   return navigator.onLine;
@@ -27,7 +33,7 @@ function localFallbackAnalysis(req: AIAnalysisRequest): AIAnalysisResult {
     .replace(/[^\u0621-\u064A\s]/g, ' ')
     .split(/\s+/)
     .filter((w) => w.length > 2)
-    .slice(0, 12);
+    .slice(0, 10);
 
   const analysisText = `تم تحليل السؤال محليًا: «${req.question}»
 
@@ -47,19 +53,14 @@ function localFallbackAnalysis(req: AIAnalysisRequest): AIAnalysisResult {
   };
 }
 
-function getBackendBaseUrl(): string {
-  return (import.meta.env.VITE_AI_BACKEND_URL as string | undefined)?.trim() || 'http://localhost:8787';
-}
-
 export async function analyzeQuestion(
   req: AIAnalysisRequest,
   settings: AISettings
 ): Promise<AIAnalysisResult> {
   const canUseAI =
     settings.aiEnabled &&
-    settings.aiProvider !== 'gemini' &&
-    settings.aiProvider !== 'claude' &&
-    isOnline();
+    isOnline() &&
+    ['openai', 'openrouter'].includes(settings.aiProvider);
 
   if (!canUseAI) {
     return localFallbackAnalysis(req);
@@ -83,17 +84,8 @@ export async function analyzeQuestion(
 
     return data.result as AIAnalysisResult;
   } catch (err: any) {
-    let errorMsg = 'تعذر الوصول إلى خدمة الذكاء الاصطناعي، تم التحويل إلى المعالجة المحلية.';
-
-    if (err?.message?.includes('401')) {
-      errorMsg = 'فشل التوثيق مع خدمة الذكاء الاصطناعي — تم التحويل إلى الوضع المحلي.';
-    } else if (err?.message?.includes('429')) {
-      errorMsg = 'تم تجاوز حد الاستخدام — تم التحويل إلى الوضع المحلي.';
-    } else if (err?.message?.toLowerCase?.().includes('timeout')) {
-      errorMsg = 'انتهت مهلة الاتصال — تم التحويل إلى الوضع المحلي.';
-    } else if (err?.message?.toLowerCase?.().includes('missing')) {
-      errorMsg = 'مفاتيح الذكاء الاصطناعي غير مضبوطة في الخادم — تم التحويل إلى الوضع المحلي.';
-    }
+    const errorMsg =
+      err?.message || 'تعذر الوصول إلى خدمة الذكاء الاصطناعي، تم التحويل إلى المعالجة المحلية.';
 
     if (settings.fallbackToLocal) {
       return { ...localFallbackAnalysis(req), error: errorMsg };
@@ -115,35 +107,32 @@ export async function testAIConnection(
     return { success: false, message: 'لا يوجد اتصال بالإنترنت.' };
   }
 
-  if (!settings.aiEnabled) {
-    return { success: false, message: 'الذكاء الاصطناعي معطل من الإعدادات.' };
-  }
-
-  if (settings.aiProvider === 'gemini' || settings.aiProvider === 'claude') {
-    return { success: false, message: 'المزود غير مدعوم بعد.' };
-  }
-
   try {
     const response = await fetch(`${getBackendBaseUrl()}/api/ai/test`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: settings.aiProvider }),
+      body: JSON.stringify({
+        provider: settings.aiProvider,
+      }),
     });
 
     const data = await response.json().catch(() => null);
 
-    if (!response.ok || !data) {
-      throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || 'فشل الاتصال بالخادم.',
+      };
     }
 
     return {
-      success: Boolean(data.success),
-      message: data.message || 'تم تنفيذ اختبار الاتصال.',
+      success: Boolean(data?.success),
+      message: data?.message || 'تم الاتصال بنجاح.',
     };
   } catch (err: any) {
     return {
       success: false,
-      message: `فشل الاتصال — ${err?.message ?? 'خطأ غير معروف'}. سيتم استخدام الوضع المحلي.`,
+      message: `فشل الاتصال — ${err?.message || 'خطأ غير معروف'}. سيتم استخدام الوضع المحلي.`,
     };
   }
 }
