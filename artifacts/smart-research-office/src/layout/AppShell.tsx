@@ -12,7 +12,13 @@ interface AppShellProps {
   onToggleMobileView: () => void;
 }
 
-export function AppShell({ currentPage, onNavigate, children, isMobileView, onToggleMobileView }: AppShellProps) {
+export function AppShell({
+  currentPage,
+  onNavigate,
+  children,
+  isMobileView,
+  onToggleMobileView,
+}: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
@@ -23,7 +29,14 @@ export function AppShell({ currentPage, onNavigate, children, isMobileView, onTo
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  useEffect(() => {
+    if (!isMobileView && !isSmallScreen) {
+      setDrawerOpen(false);
+    }
+  }, [isMobileView, isSmallScreen]);
+
   const showSidebar = !isMobileView && !isSmallScreen;
+  const headerHeight = 57;
 
   return (
     <div className="min-h-screen bg-app flex flex-col" style={{ direction: 'rtl' }}>
@@ -37,14 +50,20 @@ export function AppShell({ currentPage, onNavigate, children, isMobileView, onTo
       <div className="flex flex-1 min-h-0 relative">
         {showSidebar && (
           <div className="w-64 flex-shrink-0 min-h-full">
-            <div className="fixed top-0 pt-[57px] h-full w-64">
+            <div
+              className="fixed right-0 w-64"
+              style={{
+                top: `${headerHeight}px`,
+                height: `calc(100vh - ${headerHeight}px)`,
+              }}
+            >
               <RightSidebar currentPage={currentPage} onNavigate={onNavigate} />
             </div>
           </div>
         )}
 
         <main className="flex-1 min-w-0 overflow-y-auto">
-          <div className={`max-w-5xl mx-auto px-4 py-6 ${isMobileView || isSmallScreen ? 'px-3' : 'px-6 md:px-8'}`}>
+          <div className={`max-w-5xl mx-auto py-6 ${isMobileView || isSmallScreen ? 'px-3' : 'px-6 md:px-8'}`}>
             {children}
           </div>
         </main>
