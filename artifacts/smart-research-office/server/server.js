@@ -7,9 +7,14 @@ const Tesseract = require('tesseract.js');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const PORT = Number(process.env.AI_SERVER_PORT || 8787);
+const PORT = Number(process.env.PORT || process.env.AI_SERVER_PORT || 8787);
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '25mb' }));
 
 const SYSTEM_PROMPT_GUARD = `
@@ -120,7 +125,14 @@ async function extractImageText(fileBuffer) {
   return (result?.data?.text || '').trim();
 }
 
-app.get('/api/ai/health', async (_req, res) => {
+app.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'smart-research-office-backend',
+  });
+});
+
+app.get('/api/ai/health', (_req, res) => {
   res.json({ ok: true, service: 'smart-research-office-ai-server' });
 });
 
@@ -259,5 +271,5 @@ ${extractedText || 'تعذر استخراج نص واضح من هذا الملف
 });
 
 app.listen(PORT, () => {
-  console.log(`AI server running on http://localhost:${PORT}`);
+  console.log(`Backend server running on port ${PORT}`);
 });
