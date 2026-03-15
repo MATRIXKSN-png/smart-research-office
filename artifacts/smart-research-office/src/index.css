@@ -32,7 +32,6 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ── Light Theme ─────────────────────────────────────────────── */
 :root {
   --background: 262 100% 97%;
   --foreground: 263 40% 16%;
@@ -56,26 +55,24 @@
   --radius: 0.75rem;
   --app-font-sans: 'Cairo', 'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif;
 
-  /* Semantic design tokens — light */
-  --app-bg:        #F6F3FF;
-  --surface:       #FFFFFF;
-  --surface-soft:  #FCFAFF;
+  --app-bg: #F6F3FF;
+  --surface: #FFFFFF;
+  --surface-soft: #FCFAFF;
   --sidebar-start: #2E1065;
-  --sidebar-end:   #4C1D95;
-  --primary-hex:   #6D28D9;
+  --sidebar-end: #4C1D95;
+  --primary-hex: #6D28D9;
   --primary-hover: #5B21B6;
-  --accent-soft:   #DDD6FE;
-  --text-main:     #231942;
-  --text-secondary:#6B628A;
-  --text-muted:    #8C84A8;
-  --border-light:  #E9D5FF;
-  --border-soft:   #F3EFFE;
-  --success:       #10B981;
-  --waiting:       #94A3B8;
-  --shadow-color:  rgba(109,40,217,0.07);
+  --accent-soft: #DDD6FE;
+  --text-main: #231942;
+  --text-secondary: #6B628A;
+  --text-muted: #8C84A8;
+  --border-light: #E9D5FF;
+  --border-soft: #F3EFFE;
+  --success: #10B981;
+  --waiting: #94A3B8;
+  --shadow-color: rgba(109, 40, 217, 0.07);
 }
 
-/* ── Dark Theme ──────────────────────────────────────────────── */
 html.dark {
   --background: 257 38% 8%;
   --foreground: 265 50% 96%;
@@ -88,190 +85,236 @@ html.dark {
   --popover-foreground: 265 50% 96%;
   --primary: 267 83% 65%;
   --primary-foreground: 0 0% 100%;
+  --secondary: 267 83% 65%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 263 22% 18%;
+  --accent-foreground: 265 50% 96%;
+  --destructive: 0 70% 52%;
+  --destructive-foreground: 0 0% 100%;
   --muted: 263 22% 16%;
   --muted-foreground: 263 20% 63%;
 
-  /* Semantic design tokens — dark */
-  --app-bg:        #0F0B1A;
-  --surface:       #171228;
-  --surface-soft:  #1E1830;
+  --app-bg: #0F0B1A;
+  --surface: #171228;
+  --surface-soft: #1E1830;
   --sidebar-start: #140A2E;
-  --sidebar-end:   #2A115A;
-  --primary-hex:   #8B5CF6;
+  --sidebar-end: #2A115A;
+  --primary-hex: #8B5CF6;
   --primary-hover: #7C3AED;
-  --accent-soft:   #2D1B69;
-  --text-main:     #F5F3FF;
-  --text-secondary:#C4BAE8;
-  --text-muted:    #8E82B8;
-  --border-light:  #31254F;
-  --border-soft:   #251C42;
-  --shadow-color:  rgba(0,0,0,0.3);
+  --accent-soft: #2D1B69;
+  --text-main: #F5F3FF;
+  --text-secondary: #C4BAE8;
+  --text-muted: #8E82B8;
+  --border-light: #31254F;
+  --border-soft: #251C42;
+  --shadow-color: rgba(0, 0, 0, 0.3);
 }
 
-/* ── Semantic utility classes ────────────────────────────────── */
 @layer utilities {
-  .bg-app     { background-color: var(--app-bg); }
+  .bg-app { background-color: var(--app-bg); }
   .bg-surface { background-color: var(--surface); }
-  .bg-soft    { background-color: var(--surface-soft); }
-  .text-main  { color: var(--text-main); }
+  .bg-soft { background-color: var(--surface-soft); }
+  .text-main { color: var(--text-main); }
   .text-secondary { color: var(--text-secondary); }
   .text-muted { color: var(--text-muted); }
   .border-border-light { border-color: var(--border-light); }
-  .border-border-soft  { border-color: var(--border-soft); }
+  .border-border-soft { border-color: var(--border-soft); }
 
   .sidebar-gradient {
     background: linear-gradient(160deg, var(--sidebar-start) 0%, var(--sidebar-end) 100%);
   }
+
   .primary-gradient {
     background: linear-gradient(135deg, var(--primary-hex) 0%, #A78BFA 100%);
   }
+
   .card-shadow {
     box-shadow: 0 2px 12px var(--shadow-color), 0 1px 3px var(--shadow-color);
   }
+
   .card-shadow-hover {
     box-shadow: 0 4px 20px var(--shadow-color), 0 2px 6px var(--shadow-color);
   }
+
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: var(--border-light);
     border-radius: 2px;
   }
+
   .text-direction-rtl {
     direction: rtl;
     text-align: right;
   }
 }
 
-/* ── Base ────────────────────────────────────────────────────── */
 @layer base {
-  * { @apply border-border; box-sizing: border-box; }
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
   html {
     direction: rtl;
     font-family: 'Cairo', 'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif;
     background-color: var(--app-bg);
+    color: var(--text-main);
     transition: background-color 0.25s ease, color 0.25s ease;
   }
+
   body {
     @apply antialiased;
     font-family: 'Cairo', 'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif;
     direction: rtl;
     background-color: var(--app-bg);
     color: var(--text-main);
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
   }
 }
 
-/* ── Dark mode overrides for existing Tailwind classes ───────── */
-
-/* App shell / layout */
 html.dark .app-shell-bg,
-html.dark [class*="bg-\\[\\#F6F3FF\\]"] { background-color: var(--app-bg) !important; }
+html.dark [class*="bg-\\[\\#F6F3FF\\]"] {
+  background-color: var(--app-bg) !important;
+}
 
-html.dark .top-header { background-color: var(--surface) !important; border-color: var(--border-light) !important; }
+html.dark .top-header {
+  background-color: var(--surface) !important;
+  border-color: var(--border-light) !important;
+}
 
-/* White surfaces → dark surface */
 html.dark .bg-white { background-color: var(--surface) !important; }
-
-/* Violet-50 family → dark soft */
 html.dark .bg-violet-50 { background-color: var(--surface-soft) !important; }
 html.dark .hover\:bg-violet-50:hover { background-color: var(--surface-soft) !important; }
 
-/* Cards */
 html.dark .dark-card,
-html.dark .dark-soft-card { background-color: var(--surface-soft) !important; border-color: var(--border-light) !important; }
+html.dark .dark-soft-card {
+  background-color: var(--surface-soft) !important;
+  border-color: var(--border-light) !important;
+}
 
-html.dark .dark-selected-card { background-color: rgba(139,92,246,0.15) !important; border-color: rgba(139,92,246,0.4) !important; }
-html.dark .dark-selected-chip { background-color: rgba(139,92,246,0.2) !important; color: #C4B5FD !important; }
+html.dark .dark-selected-card {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
 
-/* Borders */
+html.dark .dark-selected-chip {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  color: #C4B5FD !important;
+}
+
 html.dark .border-violet-100 { border-color: var(--border-light) !important; }
 html.dark .border-violet-200 { border-color: var(--border-light) !important; }
 html.dark .border-violet-50 { border-color: var(--border-soft) !important; }
 
-/* Main card / SectionCard */
-html.dark .dark-section-card { background-color: var(--surface) !important; border-color: var(--border-light) !important; }
+html.dark .dark-section-card {
+  background-color: var(--surface) !important;
+  border-color: var(--border-light) !important;
+}
 
-/* Text colors */
-html.dark .text-\\[\\#231942\\] { color: var(--text-main) !important; }
-html.dark .text-\\[\\#6B628A\\] { color: var(--text-secondary) !important; }
-html.dark .text-\\[\\#8C84A8\\] { color: var(--text-muted) !important; }
-html.dark [class*="placeholder-\\[\\#8C84A8\\]"]::placeholder { color: var(--text-muted) !important; }
+html.dark .text-\[\#231942\] { color: var(--text-main) !important; }
+html.dark .text-\[\#6B628A\] { color: var(--text-secondary) !important; }
+html.dark .text-\[\#8C84A8\] { color: var(--text-muted) !important; }
+html.dark [class*="placeholder-\\[\\#8C84A8\\]"]::placeholder {
+  color: var(--text-muted) !important;
+}
 
-/* Inputs */
 html.dark .dark-input {
   background-color: var(--surface) !important;
   border-color: var(--border-light) !important;
   color: var(--text-main) !important;
 }
-html.dark input, html.dark textarea, html.dark select {
+
+html.dark input,
+html.dark textarea,
+html.dark select {
   background-color: var(--surface);
   border-color: var(--border-light);
   color: var(--text-main);
 }
-html.dark input::placeholder, html.dark textarea::placeholder { color: var(--text-muted); }
 
-/* Buttons */
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-muted);
+}
+
 html.dark .dark-btn {
   background-color: var(--surface) !important;
   border-color: var(--border-light) !important;
   color: #C4B5FD !important;
 }
-html.dark .dark-btn:hover { background-color: var(--surface-soft) !important; }
+
+html.dark .dark-btn:hover {
+  background-color: var(--surface-soft) !important;
+}
 
 html.dark .dark-toggle-btn {
   background-color: var(--surface) !important;
   border-color: var(--border-light) !important;
 }
 
-html.dark .dark-icon-btn { background-color: rgba(139,92,246,0.15) !important; }
+html.dark .dark-icon-btn {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
 
-/* Chips */
 html.dark .dark-chip {
   background-color: var(--surface-soft) !important;
   border-color: var(--border-light) !important;
   color: #C4B5FD !important;
 }
 
-/* Status badges */
 html.dark .dark-status-badge {
-  background-color: rgba(16,185,129,0.1) !important;
-  border-color: rgba(16,185,129,0.25) !important;
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
 }
 
-/* Dropzone */
 html.dark .dark-dropzone {
-  background-color: rgba(139,92,246,0.05) !important;
+  background-color: rgba(139, 92, 246, 0.05) !important;
   border-color: var(--border-light) !important;
 }
+
 html.dark .dark-dropzone-active {
-  background-color: rgba(139,92,246,0.12) !important;
+  background-color: rgba(139, 92, 246, 0.12) !important;
   border-color: #8B5CF6 !important;
 }
 
-/* Icon bg */
-html.dark .dark-icon-bg { background-color: rgba(139,92,246,0.15) !important; }
+html.dark .dark-icon-bg {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
 
-/* Progress */
-html.dark .dark-progress-bg { background-color: rgba(139,92,246,0.15) !important; }
+html.dark .dark-progress-bg {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
 
-/* Amber/green status backgrounds */
 html.dark .bg-amber-50,
 html.dark .bg-amber-50\/60,
 html.dark .bg-amber-50\/80 {
-  background-color: rgba(245,158,11,0.08) !important;
+  background-color: rgba(245, 158, 11, 0.08) !important;
 }
-html.dark .bg-emerald-50 { background-color: rgba(16,185,129,0.08) !important; }
+
+html.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
 html.dark .bg-red-50,
-html.dark .bg-red-50\/60 { background-color: rgba(239,68,68,0.08) !important; }
+html.dark .bg-red-50\/60 {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
 
-/* Dialog overlay */
-html.dark .bg-black\/40 { background-color: rgba(0,0,0,0.6) !important; }
+html.dark .bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
 
-/* Violet chip text in dark */
 html.dark .text-violet-700 { color: #C4B5FD !important; }
 html.dark .text-violet-600 { color: #A78BFA !important; }
 html.dark .text-violet-800 { color: #DDD6FE !important; }
 html.dark .text-violet-400 { color: #8B5CF6 !important; }
 
-/* ResultCard original text box */
-html.dark .bg-\\[\\#FCFAFF\\] { background-color: var(--surface-soft) !important; }
+html.dark .bg-\[\#FCFAFF\] {
+  background-color: var(--surface-soft) !important;
+}
