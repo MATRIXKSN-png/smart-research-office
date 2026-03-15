@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const Tesseract = require('tesseract.js');
 
 const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
 
 const PORT = Number(process.env.AI_SERVER_PORT || 8787);
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 
 const SYSTEM_PROMPT_GUARD = `
 أنت مساعد بحثي دقيق. قواعد صارمة يجب الالتزام بها:
@@ -104,6 +108,18 @@ async function callOpenRouter(prompt) {
   return data?.choices?.[0]?.message?.content || '';
 }
 
+async function extractPdfText(fileBuffer) {
+  const data = await pdfParse(fileBuffer);
+  return (data.text || '').trim();
+}
+
+async function extractImageText(fileBuffer) {
+  const result = await Tesseract.recognize(fileBuffer, 'ara+eng', {
+    logger: () => {},
+  });
+  return (result?.data?.text || '').trim();
+}
+
 app.get('/api/ai/health', async (_req, res) => {
   res.json({ ok: true, service: 'smart-research-office-ai-server' });
 });
@@ -177,6 +193,67 @@ app.post('/api/ai/analyze', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: err?.message || 'AI server error',
+    });
+  }
+});
+
+app.post('/api/extraction/process', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    const fileType = req.body?.fileType;
+    const fileName = req.body?.fileName || 'ملف غير معروف';
+    const referenceName = req.body?.referenceName || 'مرجع غير معروف';
+    const referenceAuthor = req.body?.referenceAuthor || 'مؤلف غير معروف';
+    const pageNumber = Number(req.body?.pageNumber || 1);
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: 'لم يتم إرسال الملف.',
+      });
+    }
+
+    let extractedText = '';
+    let method = '';
+    let agent = '';
+
+    if (fileType === 'pdf') {
+      extractedText = await extractPdfText(file.buffer);
+      method = 'نص مباشر';
+      agent = 'محرك استخراج PDF';
+    } else if (fileType === 'image') {
+      extractedText = await extractImageText(file.buffer);
+      method = 'OCR';
+      agent = 'محرك OCR';
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'نوع الملف غير مدعوم.',
+      });
+    }
+
+    const finalText = `--- نص مستخرج ${fileType === 'pdf' ? 'من ملف PDF' : 'بتقنية OCR'} ---
+الملف: ${fileName}
+المرجع: ${referenceName}
+المؤلف: ${referenceAuthor}
+الصفحة: ${pageNumber}
+طريقة الاستخراج: ${method}
+
+${extractedText || 'تعذر استخراج نص واضح من هذا الملف.'}
+
+الحالة: مكتمل — تم استخراج المحتوى بواسطة ${agent}.
+---`;
+
+    return res.json({
+      success: true,
+      text: finalText,
+      method,
+      agent,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'Extraction server error',
     });
   }
 });
