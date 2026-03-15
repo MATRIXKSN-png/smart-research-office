@@ -42,21 +42,18 @@ interface ReferencesContextValue {
 const ReferencesContext = createContext<ReferencesContextValue | null>(null);
 
 export function ReferencesProvider({ children }: { children: React.ReactNode }) {
-  const [references, setReferences] = useState<Reference[]>(() => {
-    const loaded = loadReferences();
-    console.log('[ReferencesContext] Loaded from localStorage:', loaded.length, 'references');
-    return loaded;
-  });
+  const [references, setReferences] = useState<Reference[]>(() => loadReferences());
   const [selectedRefId, setSelectedRefIdState] = useState<string>('');
   const [selectedFileId, setSelectedFileId] = useState<string>('');
-
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
+
     saveTimer.current = setTimeout(() => {
       saveReferences(references);
     }, 300);
+
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
@@ -71,6 +68,7 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
   const deleteReference = useCallback((id: string) => {
     setReferences((prev) => {
       const remaining = prev.filter((r) => r.id !== id);
+
       if (id === selectedRefId) {
         if (remaining.length > 0) {
           setSelectedRefIdState(remaining[0].id);
@@ -80,31 +78,28 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
           setSelectedFileId('');
         }
       }
+
       return remaining;
     });
   }, [selectedRefId]);
 
   const setSelectedRefId = useCallback((id: string) => {
     setSelectedRefIdState(id);
-    setReferences((prev) => {
-      const ref = prev.find((r) => r.id === id);
-      if (ref && ref.files.length > 0) {
-        const firstExtracted = ref.files.find((f) => f.status === 'extracted');
-        setSelectedFileId(firstExtracted?.id ?? ref.files[0].id);
-      } else {
-        setSelectedFileId('');
-      }
-      return prev;
-    });
-  }, []);
+
+    const ref = references.find((r) => r.id === id);
+    if (ref && ref.files.length > 0) {
+      const firstExtracted = ref.files.find((f) => f.status === 'extracted');
+      setSelectedFileId(firstExtracted?.id ?? ref.files[0].id);
+    } else {
+      setSelectedFileId('');
+    }
+  }, [references]);
 
   const updateFileStatus = useCallback((fileId: string, status: FileStatus) => {
     setReferences((prev) =>
       prev.map((ref) => ({
         ...ref,
-        files: ref.files.map((f) =>
-          f.id === fileId ? { ...f, status } : f
-        ),
+        files: ref.files.map((f) => (f.id === fileId ? { ...f, status } : f)),
       }))
     );
   }, []);
@@ -120,7 +115,7 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
                 extractedText: text,
                 extractionMethod: method as 'نص مباشر' | 'OCR' | '',
                 agentName: agent,
-                status: 'extracted' as FileStatus,
+                status: 'extracted',
               }
             : f
         ),
@@ -131,13 +126,16 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
   const autoSelectFirstExtracted = useCallback((referenceId: string) => {
     setReferences((prev) => {
       const ref = prev.find((r) => r.id === referenceId);
-      if (ref) {
-        const firstExtracted = ref.files.find((f) => f.status === 'extracted');
-        if (firstExtracted) {
-          setSelectedRefIdState(referenceId);
-          setSelectedFileId(firstExtracted.id);
-        }
+      if (!ref) return prev;
+
+      const updatedRef = prev.find((r) => r.id === referenceId);
+      const firstExtracted = updatedRef?.files.find((f) => f.status === 'extracted');
+
+      if (firstExtracted) {
+        setSelectedRefIdState(referenceId);
+        setSelectedFileId(firstExtracted.id);
       }
+
       return prev;
     });
   }, []);
@@ -164,6 +162,8 @@ export function ReferencesProvider({ children }: { children: React.ReactNode }) 
 
 export function useReferences(): ReferencesContextValue {
   const ctx = useContext(ReferencesContext);
-  if (!ctx) throw new Error('useReferences must be used within ReferencesProvider');
+  if (!ctx) {
+    throw new Error('useReferences must be used within ReferencesProvider');
+  }
   return ctx;
 }
