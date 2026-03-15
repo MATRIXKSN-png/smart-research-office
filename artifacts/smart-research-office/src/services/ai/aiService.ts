@@ -26,14 +26,26 @@ const SYSTEM_PROMPT_GUARD = `
 5. اكتب إجاباتك باللغة العربية الفصحى.
 `.trim();
 
+const isOnline = (): boolean => {
+  if (typeof navigator === 'undefined') return true;
+  return navigator.onLine;
+};
+
+const createAbortSignal = (timeoutMs: number): AbortSignal | undefined => {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  return undefined;
+};
+
 async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
-    signal: AbortSignal.timeout(15000),
+    signal: createAbortSignal(15000),
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
@@ -44,10 +56,12 @@ async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
       temperature: 0.3,
     }),
   });
+
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err?.error?.message ?? `HTTP ${response.status}`);
   }
+
   const data = await response.json();
   return data.choices?.[0]?.message?.content ?? '';
 }
@@ -57,9 +71,9 @@ async function callOpenRouter(apiKey: string, prompt: string): Promise<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
-    signal: AbortSignal.timeout(15000),
+    signal: createAbortSignal(15000),
     body: JSON.stringify({
       model: 'mistralai/mistral-7b-instruct',
       messages: [
@@ -67,9 +81,15 @@ async function callOpenRouter(apiKey: string, prompt: string): Promise<string> {
         { role: 'user', content: prompt },
       ],
       max_tokens: 1200,
+      temperature: 0.3,
     }),
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error?.message ?? `HTTP ${response.status}`);
+  }
+
   const data = await response.json();
   return data.choices?.[0]?.message?.content ?? '';
 }
@@ -101,19 +121,19 @@ function localFallbackAnalysis(req: AIAnalysisRequest): AIAnalysisResult {
     .filter((w) => w.length > 2)
     .slice(0, 6);
 
-  const analysis = `تم تحليل السؤال محليًا: «${req.question}»
+  const analysisText = `تم تحليل السؤال محليًا: «${req.question}»
 
-الكلمات المفتاحية المستخرجة: ${questionWords.join(' — ')}
+الكلمات المفتاحية المستخرجة: ${questionWords.join(' — ') || 'لا توجد كلمات مفتاحية كافية'}
 
 تم البحث في ${req.extractedTexts.length} نص من المراجع المرفوعة. موظف البحث يعمل على مطابقة النصوص الأصلية مع السؤال المطروح دون أي تعديل عليها.`;
 
   const conclusions = req.finalConclusions
-    ? `الاستنتاج: بناءً على النصوص الأصلية المرفوعة، تم تحديد الفقرات الأكثر صلة بالسؤال البحثي وترتيبها حسب درجة الملاءمة.`
+    ? 'الاستنتاج: بناءً على النصوص الأصلية المرفوعة، تم تحديد الفقرات الأكثر صلة بالسؤال البحثي وترتيبها حسب درجة الملاءمة.'
     : undefined;
 
   return {
     mode: 'local',
-    analysisText: analysis,
+    analysisText,
     keywords: questionWords,
     conclusions,
   };
@@ -126,7 +146,7 @@ export async function analyzeQuestion(
   const canUseAI =
     settings.aiEnabled &&
     settings.apiKey.trim().length > 10 &&
-    navigator.onLine;
+    isOnline();
 
   if (!canUseAI) {
     return localFallbackAnalysis(req);
@@ -158,11 +178,15 @@ export async function analyzeQuestion(
     };
   } catch (err: any) {
     let errorMsg = 'تعذر الوصول إلى خدمة الذكاء الاصطناعي، تم التحويل إلى المعالجة المحلية.';
+
     if (err?.message?.includes('401')) {
       errorMsg = 'مفتاح API غير صالح — تم التحويل إلى الوضع المحلي.';
     } else if (err?.message?.includes('429')) {
       errorMsg = 'تم تجاوز حد الاستخدام — تم التحويل إلى الوضع المحلي.';
-    } else if (err?.message?.includes('timeout') || err?.name === 'TimeoutError') {
+    } else if (
+      err?.message?.toLowerCase?.().includes('timeout') ||
+      err?.name === 'TimeoutError'
+    ) {
       errorMsg = 'انتهت مهلة الاتصال — تم التحويل إلى الوضع المحلي.';
     }
 
@@ -179,25 +203,35 @@ export async function analyzeQuestion(
   }
 }
 
-export async function testAIConnection(settings: AISettings): Promise<{ success: boolean; message: string }> {
-  if (!navigator.onLine) {
+export async function testAIConnection(
+  settings: AISettings
+): Promise<{ success: boolean; message: string }> {
+  if (!isOnline()) {
     return { success: false, message: 'لا يوجد اتصال بالإنترنت.' };
   }
+
   if (!settings.apiKey.trim()) {
     return { success: false, message: 'يرجى إدخال مفتاح API أولًا.' };
   }
 
   try {
-    let result = '';
     if (settings.aiProvider === 'openai') {
-      result = await callOpenAI(settings.apiKey, 'قل "متصل" فقط.');
+      await callOpenAI(settings.apiKey, 'قل "متصل" فقط.');
     } else if (settings.aiProvider === 'openrouter') {
-      result = await callOpenRouter(settings.apiKey, 'قل "متصل" فقط.');
+      await callOpenRouter(settings.apiKey, 'قل "متصل" فقط.');
     } else {
       return { success: false, message: 'المزود غير مدعوم بعد.' };
     }
-    return { success: true, message: `تم الاتصال بنجاح بخدمة الذكاء الاصطناعي (${settings.aiProvider}).` };
+
+    return {
+      success: true,
+      message: `تم الاتصال بنجاح بخدمة الذكاء الاصطناعي (${settings.aiProvider}).`,
+    };
   } catch (err: any) {
-    return { success: false, message: `فشل الاتصال — ${err?.message ?? 'خطأ غير معروف'}. سيتم استخدام الوضع المحلي.` };
+    return {
+      success: false,
+      message: `فشل الاتصال — ${err?.message ?? 'خطأ غير معروف'}. سيتم استخدام الوضع المحلي.`,
+    };
   }
 }
+
