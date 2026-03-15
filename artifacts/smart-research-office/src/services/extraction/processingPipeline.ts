@@ -17,12 +17,6 @@ export interface PipelineCallbacks {
   onPipelineComplete: (referenceId: string) => void;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} بايت`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} كيلوبايت`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} ميغابايت`;
-}
-
 async function simulatePDFExtraction(file: PipelineFile): Promise<string> {
   const rawName = file.fileName.replace(/\.(pdf|PDF)$/, '').replace(/[-_]/g, ' ');
   return `--- نص مستخرج من ملف PDF ---
@@ -40,6 +34,7 @@ async function simulatePDFExtraction(file: PipelineFile): Promise<string> {
 
 async function simulateImageOCR(file: PipelineFile): Promise<string> {
   let dimensions = '';
+
   if (file.rawFile) {
     try {
       const url = URL.createObjectURL(file.rawFile);
@@ -50,13 +45,21 @@ async function simulateImageOCR(file: PipelineFile): Promise<string> {
           URL.revokeObjectURL(url);
           resolve();
         };
-        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve();
+        };
         img.src = url;
       });
-    } catch {}
+    } catch {
+      // تجاهل الخطأ
+    }
   }
 
-  const rawName = file.fileName.replace(/\.(png|jpg|jpeg|webp|PNG|JPG|JPEG)$/, '').replace(/[-_]/g, ' ');
+  const rawName = file.fileName
+    .replace(/\.(png|jpg|jpeg|webp|PNG|JPG|JPEG|WEBP)$/, '')
+    .replace(/[-_]/g, ' ');
+
   return `--- نص مستخرج بتقنية OCR ---
 الملف: ${file.fileName}${dimensions ? `\nأبعاد الصورة: ${dimensions}` : ''}
 المرجع: ${file.referenceName}
@@ -91,13 +94,16 @@ export async function processReference(
   for (const file of files) {
     callbacks.onStatusChange(file.id, 'processing');
 
-    const processingTime = file.fileType === 'image' ? 900 + Math.random() * 600 : 600 + Math.random() * 400;
+    const processingTime =
+      file.fileType === 'image'
+        ? 900 + Math.random() * 600
+        : 600 + Math.random() * 400;
 
     await delay(processingTime);
 
     try {
       let text = '';
-      let method = '';
+      let method: 'OCR' | 'نص مباشر' = 'نص مباشر';
       let agent = '';
 
       if (file.fileType === 'image') {
@@ -119,4 +125,3 @@ export async function processReference(
 
   callbacks.onPipelineComplete(referenceId);
 }
-
