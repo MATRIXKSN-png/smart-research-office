@@ -17,64 +17,43 @@ export interface PipelineCallbacks {
   onPipelineComplete: (referenceId: string) => void;
 }
 
-async function simulatePDFExtraction(file: PipelineFile): Promise<string> {
-  const rawName = file.fileName.replace(/\.(pdf|PDF)$/, '').replace(/[-_]/g, ' ');
-  return `--- نص مستخرج من ملف PDF ---
-الملف: ${file.fileName}
-المرجع: ${file.referenceName}
-المؤلف: ${file.referenceAuthor}
-الصفحة: ${file.pageNumber}
-طريقة الاستخراج: استخراج نص مباشر
-
-تم استخراج هذا النص من الملف «${rawName}» ضمن مرجع «${file.referenceName}». يحتوي هذا الملف على نصوص عربية قابلة للاستخراج المباشر دون الحاجة إلى تقنية OCR.
-
-الحالة: مكتمل — تم استخراج المحتوى بواسطة موظف استخراج النصوص.
----`;
-}
-
-async function simulateImageOCR(file: PipelineFile): Promise<string> {
-  let dimensions = '';
-
-  if (file.rawFile) {
-    try {
-      const url = URL.createObjectURL(file.rawFile);
-      await new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          dimensions = `${img.naturalWidth}×${img.naturalHeight} بكسل`;
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        img.src = url;
-      });
-    } catch {
-      // تجاهل الخطأ
-    }
-  }
-
-  const rawName = file.fileName
-    .replace(/\.(png|jpg|jpeg|webp|PNG|JPG|JPEG|WEBP)$/, '')
-    .replace(/[-_]/g, ' ');
-
-  return `--- نص مستخرج بتقنية OCR ---
-الملف: ${file.fileName}${dimensions ? `\nأبعاد الصورة: ${dimensions}` : ''}
-المرجع: ${file.referenceName}
-المؤلف: ${file.referenceAuthor}
-الصفحة: ${file.pageNumber}
-طريقة الاستخراج: OCR (التعرف الضوئي على النص)
-
-تمت معالجة الصورة «${rawName}» ضمن مرجع «${file.referenceName}» باستخدام تقنية OCR. تم تحليل الصورة وتحديد مناطق النص العربي بها.
-
-الحالة: مكتمل — تم استخراج المحتوى بواسطة موظف OCR.
----`;
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getBackendBaseUrl(): string {
+  return (import.meta.env.VITE_AI_BACKEND_URL as string | undefined)?.trim() || 'http://localhost:8787';
+}
+
+async function extractFileReal(file: PipelineFile): Promise<{ text: string; method: string; agent: string }> {
+  if (!file.rawFile) {
+    throw new Error('الملف الأصلي غير موجود.');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file.rawFile);
+  formData.append('fileType', file.fileType);
+  formData.append('fileName', file.fileName);
+  formData.append('referenceName', file.referenceName);
+  formData.append('referenceAuthor', file.referenceAuthor);
+  formData.append('pageNumber', String(file.pageNumber));
+
+  const response = await fetch(`${getBackendBaseUrl()}/api/extraction/process`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.error || `HTTP ${response.status}`);
+  }
+
+  return {
+    text: data.text,
+    method: data.method,
+    agent: data.agent,
+  };
 }
 
 export async function processReference(
@@ -94,27 +73,8 @@ export async function processReference(
   for (const file of files) {
     callbacks.onStatusChange(file.id, 'processing');
 
-    const processingTime =
-      file.fileType === 'image'
-        ? 900 + Math.random() * 600
-        : 600 + Math.random() * 400;
-
-    await delay(processingTime);
-
     try {
-      let text = '';
-      let method: 'OCR' | 'نص مباشر' = 'نص مباشر';
-      let agent = '';
-
-      if (file.fileType === 'image') {
-        text = await simulateImageOCR(file);
-        method = 'OCR';
-        agent = 'موظف OCR';
-      } else {
-        text = await simulatePDFExtraction(file);
-        method = 'نص مباشر';
-        agent = 'موظف استخراج النصوص';
-      }
+      const { text, method, agent } = await extractFileReal(file);
 
       callbacks.onStatusChange(file.id, 'extracted');
       callbacks.onTextExtracted(file.id, text, method, agent);
