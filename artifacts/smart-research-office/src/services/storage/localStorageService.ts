@@ -78,6 +78,7 @@ export function saveAISettings(s: AISettings): void {
       AI_SETTINGS_KEY,
       JSON.stringify({
         ...s,
+        apiKey: '',
         networkAvailable: getNetworkAvailability(),
       })
     );
@@ -88,16 +89,16 @@ export function loadAISettings(): AISettings {
   try {
     const raw = localStorage.getItem(AI_SETTINGS_KEY);
     if (!raw) {
-      return { ...defaultAISettings, networkAvailable: getNetworkAvailability() };
+      return { ...defaultAISettings, apiKey: '', networkAvailable: getNetworkAvailability() };
     }
 
     return {
       ...defaultAISettings,
       ...JSON.parse(raw),
+      apiKey: '',
       networkAvailable: getNetworkAvailability(),
     };
   } catch {
-    return { ...defaultAISettings, networkAvailable: getNetworkAvailability() };
+    return { ...defaultAISettings, apiKey: '', networkAvailable: getNetworkAvailability() };
   }
 }
-
