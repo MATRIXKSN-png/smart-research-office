@@ -1,5 +1,5 @@
-import React from 'react';
-import { Menu, Wifi, Calendar, Sun, Moon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Menu, Wifi, WifiOff, Calendar, Sun, Moon } from 'lucide-react';
 import { ViewModeToggle } from '../components/ViewModeToggle';
 import { useTheme } from '../context/ThemeContext';
 
@@ -18,16 +18,38 @@ function getArabicDate(): string {
     month: 'long',
     day: 'numeric',
   };
+
   try {
-    return now.toLocaleDateString('ar-SA', options);
+    return new Intl.DateTimeFormat('ar-DZ-u-ca-gregory', options).format(now);
   } catch {
-    return new Intl.DateTimeFormat('ar-EG', options).format(now);
+    return new Intl.DateTimeFormat('ar-EG-u-ca-gregory', options).format(now);
   }
 }
 
-export function TopHeader({ onMenuOpen, isMobileView, onToggleMobileView, isSmallScreen }: TopHeaderProps) {
+export function TopHeader({
+  onMenuOpen,
+  isMobileView,
+  onToggleMobileView,
+  isSmallScreen,
+}: TopHeaderProps) {
   const arabicDate = getArabicDate();
   const { isDark, toggleDark } = useTheme();
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   return (
     <header
@@ -43,6 +65,7 @@ export function TopHeader({ onMenuOpen, isMobileView, onToggleMobileView, isSmal
             <Menu className="w-5 h-5" />
           </button>
         )}
+
         <div className="min-w-0">
           <h1 className="text-sm md:text-base font-bold text-main leading-tight truncate">
             المكتب الذكي للبحث العلمي
@@ -59,12 +82,27 @@ export function TopHeader({ onMenuOpen, isMobileView, onToggleMobileView, isSmal
           <span className="text-xs text-emerald-700 font-medium whitespace-nowrap">{arabicDate}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100 dark-status-badge">
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border ${
+            isOnline
+              ? 'bg-emerald-50 border-emerald-100 dark-status-badge'
+              : 'bg-red-50 border-red-100'
+          }`}
+        >
           <div className="relative">
-            <Wifi className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            {isOnline ? (
+              <>
+                <Wifi className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </>
+            ) : (
+              <WifiOff className="w-3.5 h-3.5 text-red-500" />
+            )}
           </div>
-          <span className="text-xs text-emerald-700 font-medium hidden sm:inline">النظام متصل</span>
+
+          <span className={`text-xs font-medium hidden sm:inline ${isOnline ? 'text-emerald-700' : 'text-red-700'}`}>
+            {isOnline ? 'النظام متصل' : 'لا يوجد اتصال'}
+          </span>
         </div>
 
         <button
