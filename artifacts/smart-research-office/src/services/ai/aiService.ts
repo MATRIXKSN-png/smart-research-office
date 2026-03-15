@@ -97,7 +97,7 @@ async function callOpenRouter(apiKey: string, prompt: string): Promise<string> {
 function buildPrompt(req: AIAnalysisRequest): string {
   const textsSection = req.extractedTexts
     .slice(0, 5)
-    .map((t, i) => `[نص ${i + 1} — ${t.referenceName} — ص${t.pageNumber}]:\n${t.text.slice(0, 400)}`)
+    .map((t, i) => `[نص ${i + 1} — ${t.referenceName} — ص${t.pageNumber}]:\n${t.text}`)
     .join('\n\n');
 
   return `السؤال البحثي: ${req.question}
@@ -113,7 +113,6 @@ ${req.finalConclusions ? '4. اكتب استنتاجًا نهائيًا مختص
 
 تذكير: لا تُعيد صياغة النصوص الأصلية أبدًا.`;
 }
-
 function localFallbackAnalysis(req: AIAnalysisRequest): AIAnalysisResult {
   const questionWords = req.question
     .replace(/[^\u0621-\u064A\s]/g, ' ')
