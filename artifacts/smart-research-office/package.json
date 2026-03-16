@@ -3,26 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "preinstall": "echo Skipping preinstall on Windows",
-    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "multer": "^1.4.5-lts.1",
-    "pdf-parse": "^1.1.1",
-    "tesseract.js": "^5.1.1"
-  },
-  "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1",
-    "@types/node": "catalog:",
-    "@vitejs/plugin-react": "catalog:",
-    "@tailwindcss/vite": "catalog:",
-    "@replit/vite-plugin-runtime-error-modal": "catalog:",
-    "vite": "catalog:"
+    "dev": "vite",
+    "preview": "vite preview"
   }
 }
