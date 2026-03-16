@@ -1,0 +1,5 @@
+{
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @workspace/smart-research-office run build",
+  "outputDirectory": "artifacts/smart-research-office/dist/public"
+}
