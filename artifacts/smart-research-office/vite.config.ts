@@ -2,29 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
-import { cartographer } from "@replit/vite-plugin-cartographer";
-import { devBanner } from "@replit/vite-plugin-dev-banner";
 
 const port = Number(process.env.PORT ?? 5173);
 const basePath = process.env.BASE_PATH ?? "/";
-
-const isReplitDev =
-  process.env.NODE_ENV !== "production" &&
-  process.env.REPL_ID !== undefined;
 
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
-    ...(isReplitDev
-      ? [
-          cartographer({
-            root: path.resolve(import.meta.dirname, ".."),
-          }),
-          devBanner(),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
